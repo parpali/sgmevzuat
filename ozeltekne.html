@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yönetmelik Karşılaştırması</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        h1 {
+            margin: 0 0 10px 0;
+            font-size: 28px;
+        }
+        .subtitle {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        .controls {
+            padding: 20px 30px;
+            background: #f8f9fa;
+            border-bottom: 2px solid #e9ecef;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-excel {
+            background: #217346;
+            color: white;
+        }
+        .btn-excel:hover {
+            background: #1a5c37;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(33,115,70,0.3);
+        }
+        .btn-json {
+            background: #f39c12;
+            color: white;
+        }
+        .btn-json:hover {
+            background: #d68910;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(243,156,18,0.3);
+        }
+        .btn-filter {
+            background: #3498db;
+            color: white;
+        }
+        .btn-filter:hover {
+            background: #2980b9;
+        }
+        .btn-filter.active {
+            background: #e74c3c;
+        }
+        .search-box {
+            flex: 1;
+            min-width: 250px;
+        }
+        .search-box input {
+            width: 100%;
+            padding: 10px 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        .search-box input:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        .stats {
+            padding: 20px 30px;
+            background: #fff3cd;
+            border-bottom: 2px solid #ffc107;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        .stat-item {
+            text-align: center;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        thead {
+            background: #2c3e50;
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        td {
+            padding: 15px;
+            border-bottom: 1px solid #e9ecef;
+            vertical-align: top;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        tr:hover {
+            background: #f8f9fa;
+        }
+        .change-type {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .new {
+            background: #d4edda;
+            color: #155724;
+        }
+        .modified {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .removed {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .unchanged {
+            background: #e2e3e5;
+            color: #383d41;
+        }
+        .table-wrapper {
+            overflow-x: auto;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        .highlight {
+            background: #ffffcc !important;
+        }
+        .icon {
+            width: 16px;
+            height: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📋 Özel Tekne Yönetmelikleri Karşılaştırması</h1>
+            <div class="subtitle">Eski (2023) ve Yeni (2026) Yönetmelik Değişiklikleri</div>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-number" id="totalChanges">0</div>
+                <div class="stat-label">Toplam Değişiklik</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="newItems">0</div>
+                <div class="stat-label">Yeni Eklenen</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="modifiedItems">0</div>
+                <div class="stat-label">Değiştirilen</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="removedItems">0</div>
+                <div class="stat-label">Kaldırılan</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-excel" onclick="exportToExcel()">
+                <span>📊</span> Excel İndir
+            </button>
+            <button class="btn btn-json" onclick="exportToJSON()">
+                <span>💾</span> JSON İndir
+            </button>
+            <button class="btn btn-filter" onclick="toggleFilter('new')">Yeni Eklenenler</button>
+            <button class="btn btn-filter" onclick="toggleFilter('modified')">Değiştirilmişler</button>
+            <button class="btn btn-filter" onclick="toggleFilter('removed')">Kaldırılanlar</button>
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="🔍 Ara... (madde numarası, konu, açıklama)" onkeyup="filterTable()">
+            </div>
+        </div>
+
+        <div class="table-wrapper">
+            <table id="comparisonTable">
+                <thead>
+                    <tr>
+                        <th style="width: 8%">Madde</th>
+                        <th style="width: 12%">Değişiklik Türü</th>
+                        <th style="width: 20%">Konu</th>
+                        <th style="width: 30%">Eski Düzenleme</th>
+                        <th style="width: 30%">Yeni Düzenleme</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const data = [
+            {
+                madde: "M1",
+                type: "modified",
+                konu: "Amaç - Kapsam Genişletildi",
+                eski: "Sadece 'özel teknelerin' donatımından bahseder",
+                yeni: "Hem 'özel tekne' hem de 'özel yat' ifadeleri kullanılarak kapsam genişletildi"
+            },
+            {
+                madde: "M2",
+                type: "modified",
+                konu: "Kapsam - Özel Yat Eklendi",
+                eski: "Sadece özel tekne cinsindeki deniz araçlarını kapsar",
+                yeni: "Özel tekne VE özel yat cinsindeki deniz araçlarını kapsar"
+            },
+            {
+                madde: "M3",
+                type: "modified",
+                konu: "Dayanak - Tarih Düzeltmesi",
+                eski: "618 sayılı Limanlar Kanunu tarihi: 14/4/1925",
+                yeni: "618 sayılı Limanlar Kanunu tarihi: 14/4/1341 (Rumi takvim)"
+            },
+            {
+                madde: "M4(a)",
+                type: "new",
+                konu: "ADB Tanımı - İki Kategoriye Ayrıldı",
+                eski: "Tek tip ADB tanımı vardı",
+                yeni: "ADB 10 ve ADB 24 olmak üzere iki kategoriye ayrıldı"
+            },
+            {
+                madde: "M4(b)",
+                type: "new",
+                konu: "ADB 10 Tanımı",
+                eski: "Yok",
+                yeni: "Tam boyu 10 metreye kadar özel tekneler için belge tanımlandı"
+            },
+            {
+                madde: "M4(c)",
+                type: "new",
+                konu: "ADB 24 Tanımı",
+                eski: "Yok",
+                yeni: "Gövde boyu 24 metreye kadar özel tekneler için belge tanımlandı"
+            },
+            {
+                madde: "M4(d)",
+                type: "modified",
+                konu: "Amatör Denizci Kütüğü",
+                eski: "Eğitim tamamlama tarihleri ve belge harcı tahsiline ilişkin bilgiler",
+                yeni: "Daha detaylı: eğitimler, sınav yeri, tarihi ve başarı notu, sağlık raporu ve belge harcı tahsili VE BENZERİ bilgiler"
+            },
+            {
+                madde: "M4(e)",
+                type: "new",
+                konu: "Bakanlık Tanımı Eklendi",
+                eski: "Yok",
+                yeni: "Bakanlık: Ulaştırma ve Altyapı Bakanlığı tanımı eklendi"
+            },
+            {
+                madde: "M4(g)",
+                type: "new",
+                konu: "Liman Başkanlığı Tanımı",
+                eski: "Yok",
+                yeni: "Liman başkanlığı: Bakanlık bölge liman başkanlığı veya liman başkanlığı"
+            },
+            {
+                madde: "M4(h)",
+                type: "new",
+                konu: "Özel Yat Tanımı",
+                eski: "Yok - Eski yönetmelikte özel yat kavramı yoktu",
+                yeni: "Yat tipinde, kamarası, tuvaleti, lavabosu, mutfağı olan, boyu 24m'den büyük gemiler tanımlandı"
+            },
+            {
+                madde: "M4(ı)",
+                type: "modified",
+                konu: "Uygunluk Beyanı - İthalatçı Eklendi",
+                eski: "Sadece imalatçı firma tarafından düzenlenmiş belge",
+                yeni: "İmalatçı VEYA İTHALATÇI firma tarafından düzenlenmiş belge"
+            },
+            {
+                madde: "M4(ı)",
+                type: "modified",
+                konu: "Uygunluk Belgesi → Uygunluk Beyanı",
+                eski: "Uygunluk belgesi",
+                yeni: "Uygunluk beyanı (terminoloji değişikliği)"
+            },
+            {
+                madde: "M4(i)",
+                type: "modified",
+                konu: "Yetkilendirilmiş Kuruluş",
+                eski: "Amatör denizci eğitimi vermek üzere",
+                yeni: "Amatör denizci UYGULAMA eğitimi vermek üzere (daha spesifik)"
+            },
+            {
+                madde: "M5(1)",
+                type: "new",
+                konu: "Belge İbrazı - Çevrimiçi Doğrulama",
+                eski: "Belgelerin ibrazı zorunlu",
+                yeni: "Belgeler çevrimiçi doğrulanabildiği takdirde fiziki ibrazı aranmaz"
+            },
+            {
+                madde: "M5(2)",
+                type: "new",
+                konu: "10 Metreye Kadar Tekneler - ADB 10",
+                eski: "Tüm özel tekneler için tek tip ADB",
+                yeni: "Tam boyu 10 metreye kadar tekneler için ADB 10 yeterli"
+            },
+            {
+                madde: "M5(3)",
+                type: "new",
+                konu: "18 Yaş Altı Kullanım - Gözetim Şartı",
+                eski: "18 yaş altı, 5 metreden fazla tekne kullanamaz",
+                yeni: "18 yaş altı ADB 10 sahipleri, yanında yetişkin gözetiminde 10 metreye kadar tekne kullanabilir"
+            },
+            {
+                madde: "M5(4)",
+                type: "new",
+                konu: "24 Metreye Kadar Tekneler - ADB 24",
+                eski: "Yok",
+                yeni: "Gövde boyu 24 metreye kadar tekneler için ADB 24 veya usta gemici belgesi gerekli"
+            },
+            {
+                madde: "M5(5)",
+                type: "new",
+                konu: "Özel Yatların Donatımı",
+                eski: "24 metreden büyük tekneler ticari yat gibi donatılır",
+                yeni: "Özel yatlar, ticari yatlar gibi donatılır (ayrı madde)"
+            },
+            {
+                madde: "M5(6)",
+                type: "new",
+                konu: "Yetki Yazısı - Ücret ve Muafiyet",
+                eski: "Noter veya liman başkanlığı onaylı yetki yazısı",
+                yeni: "Eş ve çocuklar için noter/liman onayı aranmaz. Liman onaylı yazılar için 1.000 TL ücret (yeniden değerlemeye tabi)"
+            },
+            {
+                madde: "M5(8)",
+                type: "modified",
+                konu: "ADB İstenmeyecek Tekneler - Motor Gücü",
+                eski: "Makinesi 10 beygir gücünden AZ",
+                yeni: "Makine gücü 10 beygir gücünden DÜŞÜK (terminoloji değişikliği)"
+            },
+            {
+                madde: "M5(9)",
+                type: "new",
+                konu: "Emniyet Teçhizatı",
+                eski: "EK-2'de verilen asgari emniyet teçhizatı listesi",
+                yeni: "EK-2'de yer alan ZORUNLU Asgari Emniyet Teçhizatı (daha vurgulu)"
+            },
+            {
+                madde: "M5(10)",
+                type: "modified",
+                konu: "Uygunluk Beyanı Terimi",
+                eski: "Uygunluk belgesi",
+                yeni: "Uygunluk beyanı (tutarlılık)"
+            },
+            {
+                madde: "M5(11)",
+                type: "new",
+                konu: "Ticari Kullanım Yasağı",
+                eski: "Madde 17'de düzenlenmişti",
+                yeni: "Madde 5'e taşındı: Özel tekneler hiçbir şekilde ticari amaçla kullanılamaz"
+            },
+            {
+                madde: "M6(1)",
+                type: "new",
+                konu: "Vatandaşlık Şartı Genişletildi",
+                eski: "Sadece TC vatandaşı",
+                yeni: "TC, KKTC vatandaşı, Türk soylu yabancı veya Türkiye'de oturma izni almış yabancılar"
+            },
+            {
+                madde: "M6(1)(a)",
+                type: "new",
+                konu: "ADB 10 Şartları - Yeni Kategori",
+                eski: "Tek tip ADB için 15 yaş",
+                yeni: "ADB 10 için 16 yaş ve ayrı şartlar belirlendi"
+            },
+            {
+                madde: "M6(1)(a)(4)",
+                type: "new",
+                konu: "ADBS Teorik Eğitimi",
+                eski: "İdare tarafından elektronik ortamda verilen",
+                yeni: "ADBS'de elektronik ortamda verilen UZAKTAN teorik eğitim (daha spesifik)"
+            },
+            {
+                madde: "M6(1)(a)(6)",
+                type: "new",
+                konu: "Sınav Sistemi",
+                eski: "Online sistem",
+                yeni: "ADBS'de ÇEVRİMİÇİ sistem (terminoloji standartlaştırması)"
+            },
+            {
+                madde: "M6(1)(a)(7)",
+                type: "new",
+                konu: "Sabıka Şartı Eklendi",
+                eski: "Yok",
+                yeni: "Belirli suçlardan (göçmen kaçakçılığı, insan ticareti, uyuşturucu vb.) hüküm giymemiş olmak şartı"
+            },
+            {
+                madde: "M6(1)(b)",
+                type: "new",
+                konu: "ADB 24 Şartları - Yeni Kategori",
+                eski: "Yok",
+                yeni: "18 yaş, en az 12 ay ADB 10 sahibi olmak ve ayrı eğitim/sınav şartları"
+            },
+            {
+                madde: "M6(2)",
+                type: "modified",
+                konu: "Mezunlara Belge - Sınav Muafiyeti",
+                eski: "Eğitim ve sınav şartı aranmadan ADB verilir",
+                yeni: "Talep etmeleri halinde eğitim ve sınav şartı aranmadan ADB 24 verilir (24 kategorisi belirtildi)"
+            },
+            {
+                madde: "M6(3)",
+                type: "new",
+                konu: "Uygulama Eğitimi Muafiyetleri",
+                eski: "Birinci fıkranın (ç) bendinde düzenlenen şarta ilişkin muafiyetler",
+                yeni: "Birinci fıkrada belirtilen uygulama eğitimlerine ilişkin muafiyetler (daha geniş)"
+            },
+            {
+                madde: "M6(4)",
+                type: "new",
+                konu: "Belge İptali/Askıya Alma",
+                eski: "Yok (sadece M15'te iptal vardı)",
+                yeni: "Şartları kaybedenlerin belgesi iptal/askıya alınır. Şart sağlanınca yeniden düzenlenir"
+            },
+            {
+                madde: "M7(2)",
+                type: "modified",
+                konu: "Sağlık Raporu Muafiyeti Genişletildi",
+                eski: "Sadece sürücü belgesi sahibi olanlar muaf",
+                yeni: "Sürücü belgesi SAHİBİ + son 2 yılda 'sürücü olur/amatör denizci olur/gemiadamı olur' raporu olanlar muaf"
+            },
+            {
+                madde: "M7(3)",
+                type: "modified",
+                konu: "Sağlık Sorunu Tespiti - Askıya Alma",
+                eski: "ADB belgesi geri alınır",
+                yeni: "ADB askıya alınır (daha yumuşak yaklaşım, iptal değil askı)"
+            },
+            {
+                madde: "M7(3)",
+                type: "modified",
+                konu: "Sağlık İyileşmesi",
+                eski: "ADB kişiye iade edilir",
+                yeni: "ADB askıdan çıkarılır (sistem değişikliği)"
+            },
+            {
+                madde: "M8(1)",
+                type: "modified",
+                konu: "İlk Başvuru",
+                eski: "Teorik eğitime katılmak için",
+                yeni: "İlk defa ADB almak için teorik eğitime katılmak isteyen (daha açık)"
+            },
+            {
+                madde: "M8(2)",
+                type: "modified",
+                konu: "Teorik Eğitim Süresi",
+                eski: "En fazla 15 gün",
+                yeni: "En fazla 30 gün (süre uzatıldı)"
+            },
+            {
+                madde: "M8(2)",
+                type: "new",
+                konu: "Yetkilendirilmiş Eğitim Kurumları",
+                eski: "Belirtilmemişti",
+                yeni: "İdarece yetkilendirilmiş eğitim kurumları dışında alınan eğitimlerin geçerliliği yok"
+            },
+            {
+                madde: "M8(3)",
+                type: "new",
+                konu: "Uygulama Eğitimi Düzenlemesi",
+                eski: "Madde 8(3)'te randevu yönlendirmesi vardı",
+                yeni: "Kapsam, gerekler ve müfredat İdare tarafından belirlenir (daha detaylı düzenleme)"
+            },
+            {
+                madde: "M8(4)",
+                type: "modified",
+                konu: "Sınav Tekrarı",
+                eski: "En az 1 HAFTA arayla 4 kez",
+                yeni: "En az 1 GÜN arayla 4 kez (daha esnek)"
+            },
+            {
+                madde: "M8(5)",
+                type: "new",
+                konu: "ADB 10 Belgelendirme Süreci",
+                eski: "Genel süreç vardı",
+                yeni: "ADB 10 için ayrı, detaylı belgelendirme süreci (a-ç bentleri)"
+            },
+            {
+                madde: "M8(5)(b)",
+                type: "modified",
+                konu: "Uygulama Eğitimi Girme Süresi",
+                eski: "90 gün (uzatılabilir)",
+                yeni: "90 gün (uzatma hükmü kaldırıldı)"
+            },
+            {
+                madde: "M8(6)",
+                type: "new",
+                konu: "ADB 24 Belgelendirme Süreci",
+                eski: "Yok",
+                yeni: "ADB 24 için ayrı, detaylı belgelendirme süreci. 12 ay ADB 10 sahibi olma şartı"
+            },
+            {
+                madde: "M9(1)",
+                type: "modified",
+                konu: "Sınav Tanımı",
+                eski: "Bilgisayarda internet ortamında çevrimiçi",
+                yeni: "ADBS'de çevrimiçi (sisteme özel)"
+            },
+            {
+                madde: "M10(1)",
+                type: "modified",
+                konu: "Sınav Soruları",
+                eski: "Sınavda en az 25 soru",
+                yeni: "Sınavlarda en az 25 soru (çoğul, her sınav için)"
+            },
+            {
+                madde: "M11(4)",
+                type: "modified",
+                konu: "e-Devlet Belgesi",
+                eski: "Denetimde yeterli, belge sorgulanmaz",
+                yeni: "Denetimde yeterli, belge sorgulanmaz VE HERHANGİ BİR İDARİ YAPTIRIMA UYGULANMAZ (güçlendirildi)"
+            },
+            {
+                madde: "M11(5)",
+                type: "new",
+                konu: "Harç Ödeme Süresi",
+                eski: "Yok",
+                yeni: "İlgili takvim yılı sonuna kadar harç ödenmeli, sonraki yıl yeni harç miktarı uygulanır"
+            },
+            {
+                madde: "M11(6)",
+                type: "new",
+                konu: "Belge Geçerlilik Kazandırma Süresi",
+                eski: "Yok",
+                yeni: "Sınavdan itibaren 2 yıl içinde harç ödenmezse tüm eğitim ve sınavlar geçersiz sayılır"
+            },
+            {
+                madde: "M13(1)",
+                type: "modified",
+                konu: "Belge Yenileme",
+                eski: "Kartının kayıp, çalıntı, silinme, kırılma",
+                yeni: "Belgenin kayıp, çalıntı, yazıların silinmesi, ZARAR GÖRMÜŞ olması (daha kapsamlı)"
+            },
+            {
+                madde: "M13(1)",
+                type: "modified",
+                konu: "Yenilenmiş Belge Teslimi",
+                eski: "Sahibine teslim edilir veya talep edilen adrese gönderilir",
+                yeni: "11'inci maddenin birinci fıkrası kapsamında teslim edilir (standartlaştırma)"
+            },
+            {
+                madde: "M14(1)",
+                type: "modified",
+                konu: "Gemiadamı Belgesi",
+                eski: "Gemi adamı",
+                yeni: "Gemiadamı (bitişik yazım)"
+            },
+            {
+                madde: "M14(2)",
+                type: "modified",
+                konu: "Kiralık Tekne Kullanımı",
+                eski: "Mürettebatsız kiralanan ticari yatlar",
+                yeni: "Mürettebatsız kiralanan ÖZEL TEKNELERkullanılabilir. Boy sınırı aşılmamalı (daha detaylı)"
+            },
+            {
+                madde: "M14(3)",
+                type: "new",
+                konu: "Yabancı Belgelerin Kullanımı",
+                eski: "Sadece M14(2)'de yabancı uyruklu kişiler için",
+                yeni: "TC vatandaşları ve yabancılar, yabancı belgelerle kendi/yetki devri/kiralık tekneleri kullanabilir"
+            },
+            {
+                madde: "M14(4)",
+                type: "new",
+                konu: "Yabancı Belge Doğrulaması",
+                eski: "Yok",
+                yeni: "Şüphe halinde liman başkanlıkları yabancı belgeleri doğrulatabilir, onay alana kadar kullanım yasak"
+            },
+            {
+                madde: "M15",
+                type: "new",
+                konu: "Uluslararası Denklik - Yeni Madde",
+                eski: "M16'da sadece denklik değerlendirmesi vardı",
+                yeni: "Mütekabiliyet esasına göre yabancı belgelerin toplu denkliği kabul edilebilir. ADBS'de yayımlanır"
+            },
+            {
+                madde: "M16",
+                type: "modified",
+                konu: "Belge İptali Nedenleri Genişletildi",
+                eski: "Şart kaybı, istek, vefat, mahkeme kararı",
+                yeni: "Şart kaybı, istek, vefat, mahkeme kararı + AMATÖR DENİZCİ KÜTÜĞÜNE KAYDEDİLDİKTEN SONRA (açık hale getirildi)"
+            },
+            {
+                madde: "M17",
+                type: "removed",
+                konu: "Kullanım Esasları Kaldırıldı",
+                eski: "M17(1): Ticari kullanım yasağı, akraba/arkadaş taşıma\nM17(2): Ruhsatnamede olmayan makine ile seyir yasağı",
+                yeni: "Bu maddeler kaldırıldı. Ticari kullanım yasağı M5(11)'e alındı"
+            },
+            {
+                madde: "M17-Yeni",
+                type: "new",
+                konu: "Denetim Yetkisi - Yeni Madde",
+                eski: "Açıkça düzenlenmemişti",
+                yeni: "İdare, özel tekneleri, yatları ve kullananları her zaman denetleyebilir (yetki açıkça belirtildi)"
+            },
+            {
+                madde: "M18(1)",
+                type: "modified",
+                konu: "4922 Sayılı Kanun Maddesi",
+                eski: "20'nci madde",
+                yeni: "21'inci madde (madde numarası düzeltildi)"
+            },
+            {
+                madde: "M18(2)",
+                type: "new",
+                konu: "Tekne Sahibine Ceza - Yetki Yazısı",
+                eski: "Yok",
+                yeni: "Ticari faaliyet veya yetki yazısız kullandıranlara metre başı 2.500 TL ceza"
+            },
+            {
+                madde: "M18(2)-Eski",
+                type: "modified",
+                konu: "Belgesiz Kullanım Cezası Değişti",
+                eski: "10.000 TL sabit ceza",
+                yeni: "Kaldırıldı, yerine metre bazlı ceza geldi (M18(5))"
+            },
+            {
+                madde: "M18(3)",
+                type: "new",
+                konu: "ADB ile Ticari Faaliyet Cezası",
+                eski: "50.000 TL sabit + tekrarda 2 yıl askı",
+                yeni: "Metre başı 2.500 TL (ceza sistemi değişti)"
+            },
+            {
+                madde: "M18(4)",
+                type: "new",
+                konu: "Yetki Yazısız Kullanım - Askı",
+                eski: "Yok",
+                yeni: "Başkasının teknesini yetki yazısız kullananların belgesi 6 ay askıya alınır"
+            },
+            {
+                madde: "M18(5)",
+                type: "new",
+                konu: "Belgesiz/Boy Aşımı Kullanımı Cezası",
+                eski: "10.000 TL sabit (M18(2))",
+                yeni: "Metre başı 2.500 TL (askı yok, sadece ceza)"
+            },
+            {
+                madde: "M18(6)",
+                type: "new",
+                konu: "Alkollü Seyir - Askı",
+                eski: "Yok",
+                yeni: "BAC %0,05 veya 0,25 mg/ml üzerinde seyredenlerin belgesi 6 ay askıya alınır"
+            },
+            {
+                madde: "M18(7)",
+                type: "new",
+                konu: "Hız Sınırı/Can Emniyeti İhlali - Askı",
+                eski: "Yok",
+                yeni: "Hız sınırı aşımı, yüzme alanına yaklaşma, emniyet ihlalinde belge 6 ay askıya alınır"
+            },
+            {
+                madde: "M18(8)",
+                type: "new",
+                konu: "Emniyet Teçhizatı Eksikliği Cezası",
+                eski: "Yok",
+                yeni: "Seyrine müsaade edilmez + tekne sahibine metre başı 1.000 TL ceza"
+            },
+            {
+                madde: "M18(9)",
+                type: "new",
+                konu: "Askı/İptal Kaldırma Prosedürü",
+                eski: "Yok",
+                yeni: "Askı süresinde askı kaldırılır, iptal için tekrar eğitim/sınav hakkı verilir"
+            },
+            {
+                madde: "M18(10)",
+                type: "new",
+                konu: "Yabancı Belge Sahiplerine Cezalar",
+                eski: "Yok",
+                yeni: "Denkliği kabul edilmiş yabancı belgeler için de aynı cezalar uygulanır"
+            },
+            {
+                madde: "M18(11)",
+                type: "new",
+                konu: "Ceza Hesaplama Yöntemi",
+                eski: "Yok",
+                yeni: "Tekne tam boyu × metre başı ceza. 1 metreden küçük değerler dikkate alınmaz"
+            },
+            {
+                madde: "M18(12)",
+                type: "new",
+                konu: "Ceza Ödeme Süresi",
+                eski: "1 ay içinde ödenir (M18(4))",
+                yeni: "Tebliğden itibaren en geç 1 ay içinde ödenir (daha açık)"
+            },
+            {
+                madde: "M18(13)",
+                type: "modified",
+                konu: "Ceza Artış Oranı",
+                eski: "M18(5) - Her yıl yeniden değerleme oranında artırılır",
+                yeni: "M18(13) - 213 sayılı Kanunun mükerrer 298'inci maddesi açıkça belirtildi"
+            },
+            {
+                madde: "M19",
+                type: "modified",
+                konu: "Yürürlükten Kaldırılan Yönetmelik",
+                eski: "2/3/2008 tarihli ve 26804 sayılı RG",
+                yeni: "18/1/2023 tarihli ve 32077 sayılı RG (bu yönetmelik kaldırıldı)"
+            },
+            {
+                madde: "Geçici M1",
+                type: "new",
+                konu: "Kazanılmış Haklar - Mevcut ADB Sahipleri",
+                eski: "Yok",
+                yeni: "Eski ADB sahipleri 5 yıl içinde ADB 24 teorik eğitimi almazsa belgeleri ADB 10'a denk kabul edilir"
+            },
+            {
+                madde: "Geçici M1(2)",
+                type: "new",
+                konu: "Sınavda Başarılı Olanların Harç Süresi",
+                eski: "Yok (M11(6) genel düzenleme)",
+                yeni: "Yönetmelik öncesi başarılı olanlar 2 yıl içinde harç ödemeli, yoksa eğitim/sınavlar geçersiz"
+            },
+            {
+                madde: "M20",
+                type: "modified",
+                konu: "Yürürlük Tarihi",
+                eski: "Yayımı tarihinde",
+                yeni: "Yayımı tarihinden 6 AY SONRA (geçiş süresi tanındı)"
+            },
+            {
+                madde: "Genel",
+                type: "modified",
+                konu: "Ceza Sistemi Değişikliği",
+                eski: "Sabit tutarlı cezalar (10.000 TL, 50.000 TL)",
+                yeni: "Tekne boyuna göre değişken cezalar (metre başı 1.000-2.500 TL)"
+            },
+            {
+                madde: "Genel",
+                type: "new",
+                konu: "Askıya Alma Mekanizması",
+                eski: "Sadece tekrarda askı vardı (M18(3))",
+                yeni: "Çeşitli ihlallerde 6 aylık askı sistemi getirildi (alkol, hız, yetki yazısız kullanım)"
+            },
+            {
+                madde: "Genel",
+                type: "modified",
+                konu: "Belge Kategorileri",
+                eski: "Tek tip ADB",
+                yeni: "ADB 10 (10m'ye kadar) ve ADB 24 (24m'ye kadar) olarak ikiye ayrıldı"
+            },
+            {
+                madde: "Genel",
+                type: "new",
+                konu: "18 Yaş Altı Düzenlemesi",
+                eski: "5m üzeri tekne kullanamaz",
+                yeni: "Yetişkin gözetiminde 10m'ye kadar kullanabilir (daha esnek)"
+            },
+            {
+                madde: "Genel",
+                type: "modified",
+                konu: "Eğitim Süresi",
+                eski: "Teorik eğitim 15 gün, sınav tekrarı 1 hafta arayla",
+                yeni: "Teorik eğitim 30 gün, sınav tekrarı 1 gün arayla (daha esnek)"
+            },
+            {
+                madde: "Genel",
+                type: "new",
+                konu: "Çevrimiçi Sistemler",
+                eski: "Fiziki belge ibrazı zorunlu",
+                yeni: "E-Devlet ve çevrimiçi doğrulama sistemi - fiziki belge ibrazı aranmaz"
+            },
+            {
+                madde: "Genel",
+                type: "new",
+                konu: "Liman Başkanlığı Yetkileri",
+                eski: "Sınırlı yetki",
+                yeni: "Yetki yazısı onaylama (ücretli), yabancı belge doğrulama yetkileri eklendi"
+            }
+        ];
+
+        let activeFilters = [];
+
+        function renderTable(filteredData = data) {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+            
+            filteredData.forEach(item => {
+                const row = tbody.insertRow();
+                row.className = item.type;
+                row.innerHTML = `
+                    <td><strong>${item.madde}</strong></td>
+                    <td><span class="change-type ${item.type}">${getTypeName(item.type)}</span></td>
+                    <td><strong>${item.konu}</strong></td>
+                    <td>${item.eski}</td>
+                    <td>${item.yeni}</td>
+                `;
+            });
+
+            updateStats(filteredData);
+        }
+
+        function getTypeName(type) {
+            const names = {
+                'new': 'Yeni Eklenen',
+                'modified': 'Değiştirilen',
+                'removed': 'Kaldırılan',
+                'unchanged': 'Değişmemiş'
+            };
+            return names[type] || type;
+        }
+
+        function updateStats(filteredData = data) {
+            const stats = {
+                total: filteredData.length,
+                new: filteredData.filter(d => d.type === 'new').length,
+                modified: filteredData.filter(d => d.type === 'modified').length,
+                removed: filteredData.filter(d => d.type === 'removed').length
+            };
+
+            document.getElementById('totalChanges').textContent = stats.total;
+            document.getElementById('newItems').textContent = stats.new;
+            document.getElementById('modifiedItems').textContent = stats.modified;
+            document.getElementById('removedItems').textContent = stats.removed;
+        }
+
+        function toggleFilter(type) {
+            const btn = event.target;
+            const index = activeFilters.indexOf(type);
+            
+            if (index > -1) {
+                activeFilters.splice(index, 1);
+                btn.classList.remove('active');
+            } else {
+                activeFilters.push(type);
+                btn.classList.add('active');
+            }
+            
+            filterTable();
+        }
+
+        function filterTable() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            
+            let filtered = data;
+            
+            if (activeFilters.length > 0) {
+                filtered = filtered.filter(item => activeFilters.includes(item.type));
+            }
+            
+            if (searchTerm) {
+                filtered = filtered.filter(item => 
+                    item.madde.toLowerCase().includes(searchTerm) ||
+                    item.konu.toLowerCase().includes(searchTerm) ||
+                    item.eski.toLowerCase().includes(searchTerm) ||
+                    item.yeni.toLowerCase().includes(searchTerm)
+                );
+            }
+            
+            renderTable(filtered);
+        }
+
+        function exportToExcel() {
+            const ws_data = [
+                ['Madde No', 'Değişiklik Türü', 'Konu', 'Eski Düzenleme (2023)', 'Yeni Düzenleme (2026)'],
+                ...data.map(item => [
+                    item.madde,
+                    getTypeName(item.type),
+                    item.konu,
+                    item.eski,
+                    item.yeni
+                ])
+            ];
+
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(ws_data);
+            
+            ws['!cols'] = [
+                {wch: 10},
+                {wch: 18},
+                {wch: 35},
+                {wch: 50},
+                {wch: 50}
+            ];
+
+            XLSX.utils.book_append_sheet(wb, ws, "Karşılaştırma");
+            XLSX.writeFile(wb, "Ozel_Tekne_Yonetmeligi_Karsilastirma.xlsx");
+        }
+
+        function exportToJSON() {
+            const jsonData = {
+                metadata: {
+                    title: "Özel Tekne Yönetmelikleri Karşılaştırması",
+                    old_regulation: "18/1/2023 tarihli ve 32077 sayılı RG",
+                    new_regulation: "17/1/2026 tarihli ve 33140 sayılı RG",
+                    comparison_date: new Date().toISOString(),
+                    total_changes: data.length,
+                    statistics: {
+                        new: data.filter(d => d.type === 'new').length,
+                        modified: data.filter(d => d.type === 'modified').length,
+                        removed: data.filter(d => d.type === 'removed').length
+                    }
+                },
+                changes: data
+            };
+
+            const blob = new Blob([JSON.stringify(jsonData, null, 2)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'Ozel_Tekne_Yonetmeligi_Karsilastirma.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        renderTable();
+    </script>
+</body>
+</html>
